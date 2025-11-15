@@ -34,18 +34,20 @@ class main:
                 
                 send_thread = thread.Thread(target=self.ota_send_thread, name='send_thread')
                 receive_thread = thread.Thread(target=self.ota_receive_thread, name='receive_thread')
+                timeout_thread = thread.Thread(target=self.ota_timeout_thread, name='timeout_thread')
 
                 receive_thread.start()
                 send_thread.start()
+                timeout_thread.start()
         
         def ota_send_thread(self):
-                self.adapter_dev_handle.ota_try_connect_adapter()
-                self.adapter_dev_handle.ota_get_adapter_dev_info()
-                self.adapter_dev_handle.ota_notic_firmware_info()
-                self.adapter_dev_handle.ota_upgrade()
+                self.adapter_dev_handle.ota_send_process()
         
         def ota_receive_thread(self):
                 self.adapter_dev_handle.ota_receive_process()
+                
+        def ota_timeout_thread(self):
+                self.adapter_dev_handle.timeout_process()
 
 if __name__ == "__main__":
         main()

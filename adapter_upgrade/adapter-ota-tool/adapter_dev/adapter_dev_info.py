@@ -91,6 +91,8 @@ class AdapterDevInfo:
                 self.is_wait_for_upgrade_ack = False
                 self.is_wait_for_end_upgrade_ack = False
                 self.is_wait_for_check_upgrade_success_ack = False
+                self.timeout = 0
+                self.is_timeout_reset = False
                 
                 self.firmware_total_package = 0
                 return
@@ -132,6 +134,8 @@ class AdapterDevInfo:
                 while (self.is_wait_for_get_dev_info_ack == False):
                         self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
                         time.sleep(1.5)
+                        if self.is_timeout_reset == True:
+                                break
                 
                 print("Send ota_get_adapter_dev_info...")
                 return
@@ -151,6 +155,8 @@ class AdapterDevInfo:
                 while (self.is_wait_for_notic_firmware_ack == False):
                         self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
                         time.sleep(1.5)
+                        if self.is_timeout_reset == True:
+                                break
                         
                 print("Send ota_notic_firmware_info...")
                 return
@@ -179,7 +185,7 @@ class AdapterDevInfo:
                         
                         # check last bytes size
                         if (self.ota_info.current_package_index * (canfd_frame_data_size) > hex_file_total_size):
-                                self.ota_info.data_len = hex_file_total_size - (self.ota_info.current_package_index * (canfd_frame_data_size - 1))
+                                self.ota_info.data_len = hex_file_total_size - ((self.ota_info.current_package_index - 1) * (canfd_frame_data_size))
                         else:
                                 self.ota_info.data_len = canfd_frame_data_size
                         
@@ -194,6 +200,11 @@ class AdapterDevInfo:
                         while((self.is_wait_for_upgrade_ack == False) and (self.is_wait_for_end_upgrade_ack == False)):
                                 time.sleep(0.001)
                                 self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                                if self.is_timeout_reset == True:
+                                        break
+                        
+                        if self.is_timeout_reset == True:
+                                break
                         
                         if (self.ota_info.current_package_index) == (self.ota_info.total_package_index):
                                 break
@@ -205,11 +216,13 @@ class AdapterDevInfo:
                                 
                 return
         
+        def ota_send_process(self):
+                self.ota_try_connect_adapter()
+                self.ota_get_adapter_dev_info()
+                self.ota_notic_firmware_info()
+                self.ota_upgrade()
+        
         def ota_receive_process(self):
-                
-                # init
-                
-                dev_info_data = [0x00]
                 
                 while(self.is_wait_for_check_upgrade_success_ack == False):
                         get_message = self.can_tool_handle.receive_can_data()
@@ -224,12 +237,14 @@ class AdapterDevInfo:
                                                                 print("Error! Unexpected Error Occurred")
                                                         else:
                                                                 print("get OTA_ORDER_TRY_CONNECT Ack")
+                                                                self.timeout = 0
                                                                 self.is_wait_for_try_connect_ack = True
                                                 elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_DEVICE_INFO:      
                                                         return_current_package_cnt = (get_message.data[2] << 8) | (get_message.data[1])
                                                         return_total_package_cnt = (get_message.data[4] << 8) | (get_message.data[3])                                 
                                                                                                                 
-                                                        if return_current_package_cnt == return_total_package_cnt:                                                
+                                                        if return_current_package_cnt == return_total_package_cnt:   
+                                                                self.timeout = 0
                                                                 self.is_wait_for_get_dev_info_ack = True
                                                 elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_FIRMWARE_INFO:
                                                         return_data_status = (get_message.data[6])
@@ -237,6 +252,7 @@ class AdapterDevInfo:
                                                                 print("Error! Unexpected Error Occurred")
                                                         else:
                                                                 print("get OTA_ORDER_FIRMWARE_INFO Ack")
+                                                                self.timeout = 0
                                                                 self.is_wait_for_notic_firmware_ack = True
                                                 elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_UPGRADE:
                                                         return_current_package_cnt = (get_message.data[2] << 8) | (get_message.data[1])
@@ -245,12 +261,37 @@ class AdapterDevInfo:
                                                         return_data_status = (get_message.data[6])
                                                         if (return_total_package_cnt == self.ota_info.total_package_index) and (return_current_package_cnt == self.ota_info.current_package_index) and (return_total_package_cnt == return_current_package_cnt):
                                                                 print(f"\r Adapter OTA progree: {return_current_package_cnt}/{return_total_package_cnt}", end='', flush=True)
+                                                                self.timeout = 0
                                                                 self.is_wait_for_end_upgrade_ack = True
                                                         if (return_total_package_cnt == self.ota_info.total_package_index) and (return_current_package_cnt == self.ota_info.current_package_index):
                                                                 print(f"\r Adapter OTA progree: {return_current_package_cnt}/{return_total_package_cnt}", end='', flush=True)
+                                                                self.timeout = 0
                                                                 self.is_wait_for_upgrade_ack = True
                                                         elif (return_total_package_cnt == 0x0001) and (return_current_package_cnt == 0x0001) and (return_data_len == 0x0001) and (return_data_status == 0x00):
                                                                 print("\r\n Upgrade Success!")
+                                                                self.timeout = 0
                                                                 self.is_wait_for_check_upgrade_success_ack = True                         
                 
                 return
+        
+        def timeout_process(self):
+                timeout_max = 6 # 8 sec
+                
+                while self.is_wait_for_check_upgrade_success_ack == False:
+                        if self.timeout >= timeout_max:
+                                # reset
+                                self.is_timeout_reset = True
+                                print("\r\n Timeout! Now Re-OTA. \r\n")
+                                time.sleep(2)
+                                self.is_wait_for_try_connect_ack = False
+                                self.is_wait_for_get_dev_info_ack = False
+                                self.is_wait_for_notic_firmware_ack = False
+                                self.is_wait_for_upgrade_ack = False
+                                self.is_wait_for_end_upgrade_ack = False
+                                self.is_wait_for_check_upgrade_success_ack = False
+                                self.timeout = 0
+                                self.is_timeout_reset = False
+                                self.ota_send_process()
+                                
+                        time.sleep(1)
+                        self.timeout += 1

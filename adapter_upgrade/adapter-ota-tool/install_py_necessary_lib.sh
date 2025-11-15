@@ -3,4 +3,4 @@
 sudo apt update
 sudo apt install -y python3-pip
 
-pip3 install python-can numpy intelhex
+pip3 install python-can[serial] numpy intelhex
