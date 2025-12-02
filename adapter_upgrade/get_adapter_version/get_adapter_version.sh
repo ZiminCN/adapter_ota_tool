@@ -130,13 +130,19 @@ parse_canfd_data(){
         app_version_hw=$(( 0x${software_version:4:2} ))
         app_version_minor=$(( 0x${software_version:6:2} - 1 ))
 
+        # 对hardware_version做同样的处理
+        hw_version_major=$(( 0x${hardware_version:0:2} ))
+        hw_version_board_type=$(( 0x${hardware_version:2:2} ))
+        hw_version_hw=$(( 0x${hardware_version:4:2} ))
+        hw_version_minor=$(( 0x${hardware_version:6:2} ))
+
         echo "设备ID: $device_uuid"
         echo "BootLoader 版本: $bootloader_version_major.$bootloader_version_board_type.$bootloader_version_hw.$bootloader_version_minor"
         echo "BootLoader 构建时间: $real_bootloader_build_data"
         echo "APP 版本: $app_version_major.$app_version_board_type.$app_version_hw.$app_version_minor"
         echo "APP 构建时间: $real_software_build_data"
-        echo "Hardware 版本: $hardware_version"
-        echo "Hardware 构建时间: $real_hardware_build_data"
+        echo "Hardware 版本: $hw_version_major.$hw_version_board_type.$hw_version_hw.$hw_version_minor"
+        echo "Hardware 构建时间: $real_bootloader_build_data"
 }
 
 cleanup() {
