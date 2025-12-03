@@ -94,6 +94,8 @@ class AdapterDevInfo:
                 self.timeout = 0
                 self.is_timeout_reset = False
                 
+                self.is_allow_upgrade_old_hardware = False
+                
                 self.firmware_total_package = 0
                 return
         
@@ -224,6 +226,7 @@ class AdapterDevInfo:
         
         def ota_receive_process(self):
                 
+                hardware_version_data = bytearray(384)
                 while(self.is_wait_for_check_upgrade_success_ack == False):
                         get_message = self.can_tool_handle.receive_can_data()
                         if(get_message == None):
@@ -239,11 +242,27 @@ class AdapterDevInfo:
                                                                 print("get OTA_ORDER_TRY_CONNECT Ack")
                                                                 self.timeout = 0
                                                                 self.is_wait_for_try_connect_ack = True
-                                                elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_DEVICE_INFO:      
+                                                elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_DEVICE_INFO:   
+                                                        #!TODO: not allow the hardware which board version is lower than ver1.0.0 to upgrade over the air
                                                         return_current_package_cnt = (get_message.data[2] << 8) | (get_message.data[1])
                                                         return_total_package_cnt = (get_message.data[4] << 8) | (get_message.data[3])                                 
-                                                                                                                
-                                                        if return_current_package_cnt == return_total_package_cnt:   
+                                                        return_data_len = (get_message.data[5] << 8) | (get_message.data[6])
+                                                        
+                                                        for i in range(return_data_len):
+                                                                hardware_version_data[((return_current_package_cnt - 1) * 57) + i] = get_message.data[7 + i]
+                                                                                                                                                                        
+                                                        if return_current_package_cnt == return_total_package_cnt:  
+                                                                hardware_version = hardware_version_data[127:143]
+                                                                hw_version_major = hardware_version[0:2]
+                                                                hw_version_board_type = hardware_version[2:4]
+                                                                hw_version_hw = hardware_version[4:6]
+                                                                hw_version_minor = hardware_version[6:8]
+                                                                
+                                                                if self.is_allow_upgrade_old_hardware == False:
+                                                                        if hw_version_board_type == 0x00:
+                                                                                print("\r\n Error: Not Supperted Hardware Version. Please contact the DirectDriveTech AFE demand support. \r\n")
+                                                                                os._exit(0)
+                                                                
                                                                 self.timeout = 0
                                                                 self.is_wait_for_get_dev_info_ack = True
                                                 elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_FIRMWARE_INFO:
