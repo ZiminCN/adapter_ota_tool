@@ -246,10 +246,10 @@ class AdapterDevInfo:
                                                         #!TODO: not allow the hardware which board version is lower than ver1.0.0 to upgrade over the air
                                                         return_current_package_cnt = (get_message.data[2] << 8) | (get_message.data[1])
                                                         return_total_package_cnt = (get_message.data[4] << 8) | (get_message.data[3])                                 
-                                                        return_data_len = (get_message.data[5] << 8) | (get_message.data[6])
+                                                        return_data_len = (get_message.data[6] << 8) | (get_message.data[5])
                                                         
                                                         for i in range(return_data_len):
-                                                                hardware_version_data[((return_current_package_cnt - 1) * 57) + i] = get_message.data[7 + i]
+                                                                hardware_version_data[((return_current_package_cnt - 1) * return_data_len) + i] = get_message.data[7 + i]
                                                                                                                                                                         
                                                         if return_current_package_cnt == return_total_package_cnt:  
                                                                 hardware_version = hardware_version_data[127:143]
