@@ -1,0 +1,7 @@
+.vscode
+.DS_Store
+output/
+test/test_log
+logs/
+.ruff_cache
+._*
