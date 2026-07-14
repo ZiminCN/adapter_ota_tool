@@ -13,7 +13,7 @@ class main:
         def __init__(self):
                 parser = argparse.ArgumentParser(
                         description='No Hex File Path',
-                        epilog='Usage: python3 adapter_ota.py -f firmware.hex'
+                        epilog='Usage: python3 adapter_ota.py -b adapter_board -f firmware.hex'
                 )
                 
                 parser.add_argument(
@@ -22,15 +22,22 @@ class main:
                         help='Hex file path'      # 帮助信息
                 )
                 
-                hex_file_path = parser.parse_args()
+                parser.add_argument(
+                        '-b', '--board',          # 板子类型
+                        choices=['adapter_board', 'box_board'],
+                        required=True,           # 默认
+                        help='target board type: 1) adapter_board 2) box_board'  # 帮助信息
+                )
                 
-                if not os.path.exists(hex_file_path.file):
+                input_arg = parser.parse_args()
+                
+                if not os.path.exists(input_arg.file):
                         print(f"Error: file not exists.")
                         return
                 
-                print(f"hex file path: {hex_file_path.file}")
+                print(f"hex file path: {input_arg.file}")
                         
-                self.adapter_dev_handle = AdapterDevInfo(hex_file_path.file)
+                self.adapter_dev_handle = AdapterDevInfo(input_arg.file, input_arg.board)
                 
                 send_thread = thread.Thread(target=self.ota_send_thread, name='send_thread')
                 receive_thread = thread.Thread(target=self.ota_receive_thread, name='receive_thread')

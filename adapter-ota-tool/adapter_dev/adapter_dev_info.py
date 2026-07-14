@@ -18,6 +18,8 @@ from hex_parser import HexParser
 from can_tool import CanTool
 
 class OTA_CAN_ID_E(IntEnum):
+        CANFD_ID_R2A_OTA_BOX_ID=0x383
+        CANFD_ID_R2A_OTA_BOX_ACK_ID=0x384
         CANFD_ID_R2A_OTA_BOARDCAST_ID=0x386
         CANFD_ID_R2A_OTA_ACK_ID=0x387
 
@@ -81,7 +83,8 @@ class OTA_INFO_T:
                 )
 
 class AdapterDevInfo:
-        def __init__(self, hex_file_path: str):
+        def __init__(self, hex_file_path: str, board_type):
+                self.board_type = board_type
                 self.can_tool_handle = CanTool()
                 self.hex_parser_handle = HexParser(hex_file_path)
                 self.ota_info = OTA_INFO_T()
@@ -111,11 +114,12 @@ class AdapterDevInfo:
                 
                 can_data: List[int] = self.ota_info.to_list(True)
                 
-                # self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
-                
                 #! for test can2.0.
                 while (self.is_wait_for_try_connect_ack == False):
-                        self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                        if self.board_type == 'adapter_board':
+                                self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                        elif self.board_type == 'box_board':
+                                self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOX_ID, can_data)
                         time.sleep(0.2)
                 
                 print("Send ota_try_connect_adapter...")
@@ -130,11 +134,12 @@ class AdapterDevInfo:
                 
                 can_data: List[int] = self.ota_info.to_list(True)
                 
-                # self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
-                
                 #! for test can2.0.
                 while (self.is_wait_for_get_dev_info_ack == False):
-                        self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                        if self.board_type == 'adapter_board':
+                                self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                        elif self.board_type == 'box_board':
+                                self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOX_ID, can_data)
                         time.sleep(1.5)
                         if self.is_timeout_reset == True:
                                 break
@@ -151,11 +156,12 @@ class AdapterDevInfo:
                 
                 can_data: List[int] = self.ota_info.to_list(True)
                 
-                # self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
-                
                 #! for test can2.0.
                 while (self.is_wait_for_notic_firmware_ack == False):
-                        self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                        if self.board_type == 'adapter_board':
+                                self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                        elif self.board_type == 'box_board':
+                                self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOX_ID, can_data)
                         time.sleep(1.5)
                         if self.is_timeout_reset == True:
                                 break
@@ -178,8 +184,6 @@ class AdapterDevInfo:
                 
                 self.ota_info.ota_order = OTA_ORDER_E.OTA_ORDER_UPGRADE
                 self.ota_info.total_package_index = temp_total_package_cnt
-                # print(f"hex_file_total_size is {hex_file_total_size}")
-                # print(f"self.ota_info.total_package_index is {self.ota_info.total_package_index}")
                 
                 for i in range(self.ota_info.total_package_index):
                         i: int = i
@@ -195,13 +199,14 @@ class AdapterDevInfo:
                         hex_file_data = self.hex_parser_handle.ger_hex_file_data((self.ota_info.current_package_index - 1) * (canfd_frame_data_size), self.ota_info.data_len)
                         self.ota_info.data = hex_file_data
                         can_data: List[int] = self.ota_info.to_list(True)
-                                                
-                        # self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
                         
                         # wait for ack
                         while((self.is_wait_for_upgrade_ack == False) and (self.is_wait_for_end_upgrade_ack == False)):
                                 time.sleep(0.001)
-                                self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                                if self.board_type == 'adapter_board':
+                                        self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
+                                elif self.board_type == 'box_board':
+                                        self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOX_ID, can_data)
                                 if self.is_timeout_reset == True:
                                         break
                         
@@ -233,7 +238,7 @@ class AdapterDevInfo:
                                 continue
                         else:
                                 match get_message.arbitration_id:
-                                        case OTA_CAN_ID_E.CANFD_ID_R2A_OTA_ACK_ID:
+                                        case OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOX_ACK_ID | OTA_CAN_ID_E.CANFD_ID_R2A_OTA_ACK_ID:
                                                 if get_message.data[0] == OTA_ORDER_E.OTA_ORDER_TRY_CONNECT:
                                                         return_data_status = (get_message.data[6])
                                                         if return_data_status == 0x01:
