@@ -10,7 +10,7 @@ RECORD_FLAG=true
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 send_request_canfd_data(){
-        echo "sending request to Adapter Board. ID:0x$CANFD_SEND_ID, Data:$CANFD_SEND_DATA"
+        echo "sending request to Box Board. ID:0x$CANFD_SEND_ID, Data:$CANFD_SEND_DATA"
 
         while true; do
                 sleep 1.5  # 控制发送频率

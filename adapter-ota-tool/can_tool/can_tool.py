@@ -5,8 +5,8 @@ class CanTool:
         def __init__(self):
                 ota_filters = [
                         {
-                        "can_id": 0x387, 
-                        "can_mask": 0x7FF,  # 11位标准帧掩码
+                        "can_id": 0x380, 
+                        "can_mask": 0x7F0,  # 11位标准帧掩码
                         "extended": False   # 标准帧
                         },
                 ]

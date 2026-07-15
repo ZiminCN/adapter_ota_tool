@@ -18,8 +18,8 @@ from hex_parser import HexParser
 from can_tool import CanTool
 
 class OTA_CAN_ID_E(IntEnum):
-        CANFD_ID_R2A_OTA_BOX_ID=0x383
-        CANFD_ID_R2A_OTA_BOX_ACK_ID=0x384
+        CANFD_ID_R2A_OTA_BOX_ID=0x382
+        CANFD_ID_R2A_OTA_BOX_ACK_ID=0x383
         CANFD_ID_R2A_OTA_BOARDCAST_ID=0x386
         CANFD_ID_R2A_OTA_ACK_ID=0x387
 
