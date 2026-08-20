@@ -247,7 +247,7 @@ class AdapterDevInfo:
                                                         else:
                                                                 print("get OTA_ORDER_TRY_CONNECT Ack")
                                                                 self.timeout = 0
-                                                                # self.is_wait_for_try_connect_ack = True
+                                                                self.is_wait_for_try_connect_ack = True
                                                                 continue
                                                 elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_DEVICE_INFO:   
                                                         #!TODO: not allow the hardware which board version is lower than ver1.0.0 to upgrade over the air
