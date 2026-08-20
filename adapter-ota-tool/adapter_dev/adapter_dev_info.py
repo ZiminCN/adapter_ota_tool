@@ -247,7 +247,8 @@ class AdapterDevInfo:
                                                         else:
                                                                 print("get OTA_ORDER_TRY_CONNECT Ack")
                                                                 self.timeout = 0
-                                                                self.is_wait_for_try_connect_ack = True
+                                                                # self.is_wait_for_try_connect_ack = True
+                                                                continue
                                                 elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_DEVICE_INFO:   
                                                         #!TODO: not allow the hardware which board version is lower than ver1.0.0 to upgrade over the air
                                                         return_current_package_cnt = (get_message.data[2] << 8) | (get_message.data[1])
@@ -287,6 +288,9 @@ class AdapterDevInfo:
                                                         return_data_len = (get_message.data[6] << 8) | (get_message.data[5])
                                                         # return_data_status = (get_message.data[6])
                                                         return_data_status = (get_message.data[7])
+                                                        if return_data_status == 0x01:
+                                                                print(f"\r OTA FAIL at package{return_current_package_cnt}/{return_total_package_cnt}, resend...", end='', flush=True)
+                                                                continue
                                                         if (return_total_package_cnt == self.ota_info.total_package_index) and (return_current_package_cnt == self.ota_info.current_package_index) and (return_total_package_cnt == return_current_package_cnt):
                                                                 print(f"\r Adapter OTA progree: {return_current_package_cnt}/{return_total_package_cnt}", end='', flush=True)
                                                                 self.timeout = 0
