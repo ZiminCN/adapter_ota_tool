@@ -289,7 +289,7 @@ class AdapterDevInfo:
                                                         # return_data_status = (get_message.data[6])
                                                         return_data_status = (get_message.data[7])
                                                         if return_data_status == 0x01:
-                                                                print(f"\r OTA FAIL at package{return_current_package_cnt}/{return_total_package_cnt}, resend...", end='', flush=True)
+                                                                # print(f"\r OTA FAIL at package{return_current_package_cnt}/{return_total_package_cnt}, resend...", end='', flush=True)
                                                                 continue
                                                         if (return_total_package_cnt == self.ota_info.total_package_index) and (return_current_package_cnt == self.ota_info.current_package_index) and (return_total_package_cnt == return_current_package_cnt):
                                                                 print(f"\r Adapter OTA progree: {return_current_package_cnt}/{return_total_package_cnt}", end='', flush=True)
