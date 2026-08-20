@@ -240,7 +240,8 @@ class AdapterDevInfo:
                                 match get_message.arbitration_id:
                                         case OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOX_ACK_ID | OTA_CAN_ID_E.CANFD_ID_R2A_OTA_ACK_ID:
                                                 if get_message.data[0] == OTA_ORDER_E.OTA_ORDER_TRY_CONNECT:
-                                                        return_data_status = (get_message.data[6])
+                                                        # return_data_status = (get_message.data[6])
+                                                        return_data_status = (get_message.data[7])
                                                         if return_data_status == 0x01:
                                                                 print("Error! Unexpected Error Occurred")
                                                         else:
@@ -272,7 +273,8 @@ class AdapterDevInfo:
                                                                 self.timeout = 0
                                                                 self.is_wait_for_get_dev_info_ack = True
                                                 elif get_message.data[0] == OTA_ORDER_E.OTA_ORDER_FIRMWARE_INFO:
-                                                        return_data_status = (get_message.data[6])
+                                                        # return_data_status = (get_message.data[6])
+                                                        return_data_status = (get_message.data[7])
                                                         if return_data_status == 0x01:
                                                                 print("Error! Unexpected Error Occurred")
                                                         else:
@@ -283,7 +285,8 @@ class AdapterDevInfo:
                                                         return_current_package_cnt = (get_message.data[2] << 8) | (get_message.data[1])
                                                         return_total_package_cnt = (get_message.data[4] << 8) | (get_message.data[3])
                                                         return_data_len = (get_message.data[6] << 8) | (get_message.data[5])
-                                                        return_data_status = (get_message.data[6])
+                                                        # return_data_status = (get_message.data[6])
+                                                        return_data_status = (get_message.data[7])
                                                         if (return_total_package_cnt == self.ota_info.total_package_index) and (return_current_package_cnt == self.ota_info.current_package_index) and (return_total_package_cnt == return_current_package_cnt):
                                                                 print(f"\r Adapter OTA progree: {return_current_package_cnt}/{return_total_package_cnt}", end='', flush=True)
                                                                 self.timeout = 0
