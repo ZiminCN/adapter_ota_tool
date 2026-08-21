@@ -120,7 +120,7 @@ class AdapterDevInfo:
                                 self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
                         elif self.board_type == 'box_board':
                                 self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOX_ID, can_data)
-                        time.sleep(0.2)
+                        time.sleep(0.05)
                 
                 print("Send ota_try_connect_adapter...")
                 return
@@ -140,7 +140,7 @@ class AdapterDevInfo:
                                 self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOARDCAST_ID, can_data)
                         elif self.board_type == 'box_board':
                                 self.can_tool_handle.send_can_data(True, True, OTA_CAN_ID_E.CANFD_ID_R2A_OTA_BOX_ID, can_data)
-                        time.sleep(1.5)
+                        time.sleep(0.3)
                         if self.is_timeout_reset == True:
                                 break
                 
