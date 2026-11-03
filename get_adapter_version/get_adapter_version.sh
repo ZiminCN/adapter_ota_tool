@@ -9,15 +9,22 @@ RECORD_FLAG=true
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
+SIMPLE_MODE=false
+[[ "$1" == "simple" ]] && SIMPLE_MODE=true
+
+info() {
+        if ! $SIMPLE_MODE; then echo "$@"; fi
+}
+
 send_request_canfd_data(){
-        echo "sending request to Adapter Board. ID:0x$CANFD_SEND_ID, Data:$CANFD_SEND_DATA"
+        info "sending request to Adapter Board. ID:0x$CANFD_SEND_ID, Data:$CANFD_SEND_DATA"
 
         while true; do
-                sleep 1.5  # 控制发送频率
                 ## FD mode
                 # cansend $CAN_INTERFACE $CANFD_SEND_ID##0$CANFD_SEND_DATA
                 ## can 2.0 mode
                 cansend $CAN_INTERFACE $CANFD_SEND_ID#01$CANFD_SEND_DATA
+                sleep 1.5
         done
 }
 
@@ -34,13 +41,18 @@ parse_canfd_data(){
         local record_file="data.log"
 
         if [[ ! -f "$record_file" ]]; then
-                echo "错误: 当前目录下未找到 $log_file 文件"
-                echo "请确保 data.log 文件存在于当前目录"
+                echo "错误: 当前目录下未找到 $record_file 文件" >&2
+                echo "failure"
                 exit 1
         fi
 
         local file_content=$(cat "$record_file")
         local continuius_data=$(echo "$file_content" | tr -d ' ')
+
+        if (( ${#continuius_data} < 861 )); then
+                echo "failure"
+                exit 1
+        fi
 
         # echo "$continuius_data"
 
@@ -124,25 +136,32 @@ parse_canfd_data(){
         bootloader_version_hw=$(( 0x${bootloader_version:4:2} ))
         bootloader_version_minor=$(( 0x${bootloader_version:6:2} - 1 ))
 
-        # 对software_version做同样的处理
         app_version_major=$(( 0x${software_version:0:2} ))
         app_version_board_type=$(( 0x${software_version:2:2} ))
         app_version_hw=$(( 0x${software_version:4:2} ))
         app_version_minor=$(( 0x${software_version:6:2} - 1 ))
 
-        # 对hardware_version做同样的处理
         hw_version_major=$(( 0x${hardware_version:0:2} ))
         hw_version_board_type=$(( 0x${hardware_version:2:2} ))
         hw_version_hw=$(( 0x${hardware_version:4:2} ))
         hw_version_minor=$(( 0x${hardware_version:6:2} ))
 
-        echo "设备ID: $device_uuid"
-        echo "BootLoader 版本: $bootloader_version_major.$bootloader_version_board_type.$bootloader_version_hw.$bootloader_version_minor"
-        echo "BootLoader 构建时间: $real_bootloader_build_data"
-        echo "APP 版本: $app_version_major.$app_version_board_type.$app_version_hw.$app_version_minor"
-        echo "APP 构建时间: $real_software_build_data"
-        echo "Hardware 版本: $hw_version_major.$hw_version_board_type.$hw_version_hw.$hw_version_minor"
-        echo "Hardware 构建时间: $real_bootloader_build_data"
+        for v in "$bootloader_version" "$software_version"; do
+                [[ "$v" =~ ^[0-9A-Fa-f]{8}$ ]] || { echo "failure"; exit 1; }
+        done
+        [[ -n "$real_bootloader_build_data" && -n "$real_software_build_data" ]] \
+                || { echo "failure"; exit 1; }
+
+        info "设备ID: $device_uuid"
+        info "BootLoader 版本: $bootloader_version_major.$bootloader_version_board_type.$bootloader_version_hw.$bootloader_version_minor"
+        info "BootLoader 构建时间: $real_bootloader_build_data"
+        info "APP 版本: $app_version_major.$app_version_board_type.$app_version_hw.$app_version_minor"
+        info "APP 构建时间: $real_software_build_data"
+        info "Hardware 版本: $hw_version_major.$hw_version_board_type.$hw_version_hw.$hw_version_minor"
+        info "Hardware 构建时间: $real_bootloader_build_data"
+        if $SIMPLE_MODE; then
+                echo "boot: ${bootloader_version_major}.${bootloader_version_board_type}.${bootloader_version_hw}.${bootloader_version_minor}(${real_bootloader_build_data:0:10}); app: ${app_version_major}.${app_version_board_type}.${app_version_hw}.${app_version_minor}(${real_software_build_data:0:10})"
+        fi
 }
 
 cleanup() {
@@ -150,14 +169,47 @@ cleanup() {
         kill "$SEND_PID" 2>/dev/null
         wait "$SEND_PID" 2>/dev/null
     fi
+    if [ ! -z "$DUMP_PID" ] && kill -0 "$DUMP_PID" 2>/dev/null; then
+        kill "$DUMP_PID" 2>/dev/null
+        wait "$DUMP_PID" 2>/dev/null
+    fi
 }
 
 main(){
         cd "$SCRIPT_DIR" || exit 1
+        : > ./data.log
+
+        timeout 3 candump $CAN_INTERFACE | grep --line-buffered "$CAN_INTERFACE  $CANFD_RECEIVE_ID" > ./data.log &
+        DUMP_PID=$!
+        sleep 0.2
+
         send_request_canfd_data&
-        SEND_PID=$! 
-        timeout 3 candump $CAN_INTERFACE | grep --line-buffered "$CAN_INTERFACE  $CANFD_RECEIVE_ID" > ./data.log
-        sleep 2
+        SEND_PID=$!
+
+        local last=-1 stable=0 ticks=0 cur=0 lines=0
+        while (( ticks < 200 )); do
+                sleep 0.01
+                ((ticks += 1))
+                cur=$(wc -c < ./data.log 2>/dev/null || echo 0)
+                lines=$(wc -l < ./data.log 2>/dev/null || echo 0)
+                if (( cur > 0 && cur == last && lines >= 7 )); then
+                        ((stable += 1))
+                        (( stable >= 20 )) && break
+                else
+                        stable=0
+                fi
+                last=$cur
+        done
+
+        kill "$DUMP_PID" 2>/dev/null
+        wait "$DUMP_PID" 2>/dev/null
+        DUMP_PID=
+
+        if (( lines < 7 )); then
+                echo "failure"
+                exit 1
+        fi
+
         parse_canfd_data
 
         cleanup
