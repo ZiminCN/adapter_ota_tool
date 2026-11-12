@@ -9,8 +9,9 @@ RECORD_FLAG=true
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
+MODE="$1"
 SIMPLE_MODE=false
-[[ "$1" == "simple" ]] && SIMPLE_MODE=true
+[[ "$MODE" == "sw" || "$MODE" == "hw" ]] && SIMPLE_MODE=true
 
 info() {
         if ! $SIMPLE_MODE; then echo "$@"; fi
@@ -160,8 +161,15 @@ parse_canfd_data(){
         info "Hardware 版本: $hw_version_major.$hw_version_board_type.$hw_version_hw.$hw_version_minor"
         info "Hardware 构建时间: $real_bootloader_build_data"
         if $SIMPLE_MODE; then
-                echo "APP: ${app_version_major}.${app_version_board_type}.${app_version_hw}.${app_version_minor}(${real_software_build_data:0:10})"
-                echo "Hardware: ${hw_version_major}.${hw_version_board_type}.${hw_version_hw}.${hw_version_minor}(${real_bootloader_build_data:0:10})"
+                case "$MODE" in
+                        sw)
+                                echo "Boot: ${bootloader_version_major}.${bootloader_version_board_type}.${bootloader_version_hw}.${bootloader_version_minor}(${real_bootloader_build_data:0:10})"
+                                echo "APP: ${app_version_major}.${app_version_board_type}.${app_version_hw}.${app_version_minor}(${real_software_build_data:0:10})"
+                                ;;
+                        hw)
+                                echo "Hardware: ${hw_version_major}.${hw_version_board_type}.${hw_version_hw}.${hw_version_minor}"
+                                ;;
+                esac
         fi
 }
 
